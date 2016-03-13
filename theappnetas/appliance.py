@@ -12,7 +12,7 @@ class Appliance(object):
         self.password = password
 
     def verify(self, response):
-       if response.ok:
+        if response.ok:
             return True
         else:
             raise requests.exceptions.HTTPError 
