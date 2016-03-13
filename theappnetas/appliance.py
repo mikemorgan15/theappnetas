@@ -11,8 +11,16 @@ class Appliance(object):
         self.username = username
         self.password = password
 
+    def verify(self, response):
+       if response.ok:
+            return True
+        else:
+            raise requests.exceptions.HTTPError 
+
     def hostname(self):
         response = self._get(url=self._url(path='hostname'))
+        if self.verify(response):
+            return response.get('result_data').get('hostname')
 
     def _auth(self):
         return (self.username, self.password)
