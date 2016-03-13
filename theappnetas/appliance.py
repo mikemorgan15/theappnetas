@@ -31,4 +31,4 @@ class Appliance(object):
         return url.geturl()
 
     def _get(self, url=None):
-        return requests.get(url, auth=self._auth())
+        return requests.get(url, verify=False, auth=self._auth())
