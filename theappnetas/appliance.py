@@ -20,7 +20,7 @@ class Appliance(object):
     def hostname(self):
         response = self._get(url=self._url(path='hostname'))
         if self.verify(response):
-            return response.get('result_data').get('hostname')
+            return response.json().get('result_data').get('hostname')
 
     def _auth(self):
         return (self.username, self.password)
