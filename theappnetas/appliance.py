@@ -1,19 +1,20 @@
-import requests, urlparse
+import requests 
+import urlparse
+import urllib
 
-class Appliance(resource):
-	APIPATH = '/api/v1'
-	PORT = 5443
+class Appliance(object):
+    APIPATH = '/api/v1'
+    PORT = 5443
 
-	def __init__(self, host, username, password):
-		self.host = host
-		self.username = username
-		self.password = password
+    def __init__(self, host, username, password):
+        self.host = host
+        self.username = username
+        self.password = password
 
-	def hostname(self):
-		response = self._get(url=self._url(
-			path='hostname')
+    def hostname(self):
+        response = self._get(url=self._url(path='hostname'))
 
-	def _auth(self):
+    def _auth(self):
         return (self.username, self.password)
 
     def _url(self, path, query=None):
@@ -29,6 +30,5 @@ class Appliance(resource):
         	fragment = None)
         return url.geturl()
 
-      def _get(self, url=None):
-      	return requests.get(url, auth=self._auth())
-
+    def _get(self, url=None):
+        return requests.get(url, auth=self._auth())
