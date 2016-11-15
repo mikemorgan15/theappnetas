@@ -1,10 +1,15 @@
 import requests 
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import urlparse
 import urllib
+import json
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class Appliance(object):
     APIPATH = '/api/v1'
-    PORT = 5443
+    PORT = 443
+    HEADERS = {'Content-Type': 'application/json'}
 
     def __init__(self, host, username, password):
         self.host = host
@@ -15,12 +20,270 @@ class Appliance(object):
         if response.ok:
             return True
         else:
+            print response.reason
             raise requests.exceptions.HTTPError 
 
-    def hostname(self):
+
+    ''' === Appliance  === '''
+
+    ''' POST appliance connectivity check '''
+    def post_connectivity(self, **kwargs):
+        params = {}
+        if kwargs is not None:
+            for key, value in kwargs.iteritems():
+                params[key] = value
+        response = self._post(
+            url=self._url(path='appliance/connection'),
+            data=self._data(parameter='connections', value=[params]))
+        if self.verify(response):
+            return {'result_data': response.json().get('result_data')}
+
+    ''' PUT appliance password '''
+    def put_password(self, password):
+        response = self._put(
+            url=self._url(path='appliance/password'), 
+            data=self._data(parameter='password', value=password))
+        if self.verify(response):
+            return response.ok
+
+    ''' GET sequencer info '''
+    def get_sequencer(self):
+        response = self._get(url=self._url(path='sequencer'))
+        if self.verify(response):
+            return {'result_data': response.json().get('result_data')}
+
+
+    ''' === DNS servers === '''
+
+    ''' GET appliance DNS servers '''
+    def get_dns_servers(self, interface):
+        response = self._get(url=self._url(path='interface/{}/dns_nameserver'.format(interface)))
+        if self.verify(response):
+            dhcp = response.json().get('result_data').get('dhcp_dns_nameservers')
+            static = response.json().get('result_data').get('dns_nameservers')
+            return {'dhcp_dns_nameservers': dhcp, 'dns_nameservers': static}
+
+    ''' POST appliance DNS servers '''
+    def post_dns_servers(self, interface, servers):
+        response = self._post(
+            url=self._url(path='interface/{}/dns_nameserver'.format(interface)), 
+            data=self._data(parameter='dns_nameservers', value=servers))
+        if self.verify(response):
+            return response.ok
+
+    ''' DELETE DNS servers from an interface '''
+    def delete_dns_servers(self, interface, family='inet'):
+        response = self._delete(
+            url=self._url(path='interface/{}/dns_nameserver'.format(interface), query={'family': family}))
+        if response.json().get('status') == 404:
+            return False
+        if self.verify(response):
+            return response.ok
+
+
+    ''' === DNS search domains === '''
+
+    ''' GET appliance DNS search domains '''
+    def get_dns_search(self, interface):
+        response = self._get(url=self._url(path='interface/{}/dns_search'.format(interface)))
+        if self.verify(response):
+            dhcp = response.json().get('result_data').get('dhcp_dns_search')
+            static = response.json().get('result_data').get('dns_search')
+            return {'dhcp_dns_search': dhcp, 'dns_search': static}
+
+    ''' POST appliance DNS search domains '''
+    def post_dns_search(self, interface, servers):
+        response = self._post(
+            url=self._url(path='interface/{}/dns_search'.format(interface)), 
+            data=self._data(parameter='dns_search', value=servers))
+        if self.verify(response):
+            return response.ok
+
+    ''' DELETE DNS search domains from an interface '''
+    def delete_dns_search(self, interface, family='inet'):
+        response = self._delete(
+            url=self._url(path='interface/{}/dns_search'.format(interface), query={'family': family}))
+        if response.json().get('status') == 404:
+            return False
+        if self.verify(response):
+            return response.ok
+
+
+    ''' === Appliance hostname === '''
+
+    ''' GET appliance hostname '''
+    def get_hostname(self):
         response = self._get(url=self._url(path='hostname'))
         if self.verify(response):
-            return response.json().get('result_data').get('hostname')
+            return {'hostname': response.json().get('result_data').get('hostname')}
+
+    ''' PUT appliance hostname '''
+    def put_hostname(self, hostname=None):
+        response = self._put(
+            url=self._url(path='hostname'), 
+            data=self._data(parameter='hostname', value=hostname))
+        if self.verify(response):
+            return response.ok
+
+
+    ''' === NTP servers === '''
+
+    ''' GET appliance NTP servers '''
+    def get_ntp_servers(self):
+        response = self._get(url=self._url(path='ntp'))
+        if self.verify(response):
+            return {'servers': response.json().get('result_data').get('servers')}
+
+    ''' PUT appliance NTP servers '''
+    def put_ntp_servers(self, servers):
+        response = self._put(
+            url=self._url(path='ntp'), 
+            data=self._data(parameter='servers', value=servers))
+        if self.verify(response):
+            return response.ok
+
+    ''' DELETE NTP servers from an interface '''
+    def delete_ntp_servers(self, servers):
+        response = self._delete(
+            url=self._url(path='ntp'),
+            data=self._data(parameter='servers', value=servers))
+        if self.verify(response):
+            return response.ok
+
+
+    ''' === Appliance timezone === '''
+
+    ''' GET appliance timezone '''
+    def get_timezone(self):
+        response = self._get(url=self._url(path='timezone'))
+        if self.verify(response):
+            return {'timezone': response.json().get('result_data').get('timezone')}
+
+    ''' GET list of possible timezones '''
+    def get_timezone_capability(self):
+        response = self._get(url=self._url(path='timezone/capability'))
+        if self.verify(response):
+            return {'valid_timezones': response.json().get('result_data').get('valid_timezones')}
+
+    ''' PUT timezone '''
+    def put_timezone(self, timezone):
+        response = self._put(
+            url=self._url(path='timezone'),
+            data=self._data(parameter='timezone', value=timezone))
+        if self.verify(response):
+            return response.ok
+
+
+    ''' === Network interfaces === '''
+
+    ''' GET list of active interfaces '''
+    def get_interfaces(self, config_state='active'):
+        response = self._get(url=self._url(path='interface', query={'config_state': config_state}))
+        if response.json().get('status') == 404:
+            return False
+        if self.verify(response):
+            return {'interfaces': response.json().get('result_data').get('names')}
+
+    ''' GET default interface '''
+    def get_interface_default(self):
+        response = self._get(url=self._url(path='interface/default'))
+        if self.verify(response):
+            return {'default_interface': response.json().get('result_data').get('name')}
+
+    ''' PUT discard pending interface changes '''
+    def put_interface_discard_changes(self):
+        response = self._put(
+            url=self._url(path='interface', query={'action': 'discard'}),
+            data=self._data(parameter=True, value=True))
+        if self.verify(response):
+            return response.ok
+
+    ''' POST create new interface '''
+    def post_interface(self, **kwargs):
+        interface = {}
+        if kwargs is not None:
+            for key, value in kwargs.iteritems():
+                interface[key] = value
+        response = self._post(
+            url=self._url(path='interface'),
+            data=json.dumps(interface))
+        if self.verify(response):
+            return response.ok
+
+    ''' DELETE interface '''
+    def delete_interface(self, interface):
+        response = self._delete(url=self._url(path='interface/{}'.format(interface)))
+        if self.verify(response):
+            return response.ok
+
+
+    ''' === Services === '''
+
+    ''' GET service list '''
+    def get_services(self, get_detailed_info='false'):
+        response = self._get(url=self._url(path='service', query={'get_detailed_info': get_detailed_info}))
+        if self.verify(response):
+            return {'services': response.json().get('result_data').get('services')}
+
+    ''' GET service status '''
+    def get_service(self, service):
+        response = self._get(url=self._url(path='service/{}'.format(service)))
+        if self.verify(response):
+            return {'result_data': response.json().get('result_data')}
+
+    ''' PUT perform action on service '''
+    def put_service(self, service, action):
+        response = self._put(
+            url=self._url(path='service/{}'.format(service), query={'action': action}),
+            data=self._data(parameter=True, value=True))
+        if self.verify(response):
+            return response.ok
+
+
+    ''' === Routes === '''
+
+    ''' GET routing table '''
+    def get_route(self, family='inet'):
+        response = self._get(url=self._url(path='route', query={'family': family}))
+        if self.verify(response):
+            return {'result_data': response.json().get('result_data')}
+
+    ''' GET static routes by interface '''
+    def get_static_route(self, interface, config_state='active', family='inet'):
+        response = self._get(
+            url=self._url(path='interface/{}/static_route'.format(interface), 
+                query={'config_state': config_state, 'family': family}))
+        if self.verify(response):
+            return {'result_data': response.json().get('result_data')}
+
+    ''' POST static route to interface '''
+    def post_static_route(self, interface, **kwargs):
+        params = {}
+        if kwargs is not None:
+            for key, value in kwargs.iteritems():
+                params[key] = value
+        response = self._post(
+            url=self._url(path='interface/{}/static_route'.format(interface)),
+            data=self._data(parameter='static_routes', value=[params]))
+        if self.verify(response):
+            return {'result_data': response.json().get('result_data')}
+
+    ''' DELETE static routes from an interface '''
+    def delete_static_route(self, interface, family='inet'):
+        response = self._delete(
+            url=self._url(path='interface/{}/static_route'.format(interface),
+                query={'family': family}))
+        if self.verify(response):
+            return response.ok
+
+    ''' === Wireless === '''
+
+    ''' GET wireless networks '''
+    def get_wireless_networks(self):
+        response = self._get(url=self._url(path='wireless_network'))
+        if self.verify(response):
+            return {'result_data': response.json().get('result_data')}
+
 
     def _auth(self):
         return (self.username, self.password)
@@ -38,5 +301,17 @@ class Appliance(object):
         	fragment = None)
         return url.geturl()
 
+    def _data(self, parameter, value):
+        return json.dumps({parameter: value})
+
     def _get(self, url=None):
         return requests.get(url, verify=False, auth=self._auth())
+
+    def _post(self, url=None, data=None):
+        return requests.post(url, headers=self.HEADERS, verify=False, auth=self._auth(), data=data)
+
+    def _put(self, url=None, data=None):
+        return requests.put(url, headers=self.HEADERS, verify=False, auth=self._auth(), data=data)
+
+    def _delete(self, url=None):
+        return requests.delete(url, verify=False, auth=self._auth())
