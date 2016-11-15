@@ -1,4 +1,4 @@
-from appliance import Appliance
+from theappnetas.appliance import Appliance
 app = Appliance('appliance_hostname','admin','password')
 
 ''' Gets sequencer info '''
