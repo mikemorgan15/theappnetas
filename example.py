@@ -1,5 +1,5 @@
 from theappnetas.appliance import Appliance
-app = Appliance('appliance_hostname','admin','password')
+app = Appliance(host='appliance_hostname', username='admin', password='password')
 
 ''' Gets sequencer info '''
 get_sequencer = app.get_sequencer()
@@ -84,6 +84,18 @@ print 'Update interface - {}'.format(post_interface)
 ''' Delete an interface.  Parameter - 'interface'.  Returns 'True' on success, 'False' if no servers deleted. '''
 delete_interface = app.delete_interface(interface='eth1')
 print 'Delete interface - {}'.format(delete_interface)
+
+''' Show nis.config '''
+get_nis = app.get_nis()
+print 'NIS config - {}'.format(get_nis)
+
+''' Post new nis.config '''
+post_nis = app.post_nis('relay_addresses': 'pvc-scr-1.pathviewcloud.com:443', 'protocol': 'TCP', 'site_key': 'XXXX1-1x11-1-X', 'ssl': 'true', 'address': 'pvc-esp-1.pathviewcloud.com', 'ports': '80,8080')
+print 'Update NIS config - {}'.format(post_nis)
+
+''' Delete nis.config '''
+delete_nis = app.delete_nis()
+print 'Delete NIS config - {}'.format(delete_nis)
 
 ''' Get list of services '''
 get_services = app.get_services()

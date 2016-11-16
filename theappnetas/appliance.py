@@ -178,11 +178,21 @@ class Appliance(object):
 
     ''' GET list of active interfaces '''
     def get_interfaces(self, config_state='active'):
-        response = self._get(url=self._url(path='interface', query={'config_state': config_state}))
+        response = self._get(url=self._url(
+            path='interface', 
+            query={'config_state': config_state}))
         if response.json().get('status') == 404:
             return False
         if self.verify(response):
             return {'interfaces': response.json().get('result_data').get('names')}
+
+    ''' GET info config of a specific interface '''
+    def get_interface(self, interface, config_state='active'):
+        response = self._get(url=self._url(
+            path='interface/{}'.format(interface), 
+            query={'config_state': config_state}))
+        if self.verify(response):
+            return {'interface': response.json().get('result_data')}
 
     ''' GET default interface '''
     def get_interface_default(self):
@@ -205,14 +215,54 @@ class Appliance(object):
             for key, value in kwargs.iteritems():
                 interface[key] = value
         response = self._post(
-            url=self._url(path='interface'),
-            data=json.dumps(interface))
+            url=self._url(
+                path='interface'),
+                data=json.dumps(interface)
+            )
         if self.verify(response):
             return response.ok
 
     ''' DELETE interface '''
     def delete_interface(self, interface):
-        response = self._delete(url=self._url(path='interface/{}'.format(interface)))
+        response = self._delete(
+            url=self._url(
+                path='interface/{}'.format(interface)
+                )
+            )
+        if self.verify(response):
+            return response.ok
+
+
+    ''' === NIS Config === '''
+
+    ''' GET NIS config '''
+    def get_nis(self):
+        response = self._get(url=self._url(path='nis'))
+        if self.verify(response):
+            return {'nis_config': response.json().get('result_data')}
+
+    def post_nis(self, **kwargs):
+        nis_config = {}
+        if kwargs is not None:
+            for key, value in kwargs.iteritems():
+                nis_config[key] = value
+        response = self._post(
+            url=self._url(
+                path='nis',
+                data=json.dumps(nis_config),
+                query={'restart_services': 'true'}
+                )
+            )
+        if self.verify(response):
+            return response.ok
+
+    def delete_nis(self):
+        response = self._delete(
+            url=self._url(
+                path='nis',
+                query={'restart_services': 'true'}
+                )
+            )
         if self.verify(response):
             return response.ok
 
@@ -221,7 +271,12 @@ class Appliance(object):
 
     ''' GET service list '''
     def get_services(self, get_detailed_info='false'):
-        response = self._get(url=self._url(path='service', query={'get_detailed_info': get_detailed_info}))
+        response = self._get(
+            url=self._url(
+                path='service', 
+                query={'get_detailed_info': get_detailed_info}
+                )
+            )
         if self.verify(response):
             return {'services': response.json().get('result_data').get('services')}
 
