@@ -17,3 +17,5 @@ etc
 ```
 
 See example.py for full list of available methods.
+
+p.s. not an official AppNeta product.  Use at own risk etc.
