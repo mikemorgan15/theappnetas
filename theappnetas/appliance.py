@@ -3,8 +3,16 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import urlparse
 import urllib
 import json
+import logging
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+sh = logging.StreamHandler()
+sh.setLevel(logging.DEBUG)
+sh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+log.addHandler(sh)
 
 class Appliance(object):
     APIPATH = '/api/v1'
@@ -17,11 +25,19 @@ class Appliance(object):
         self.password = password
 
     def verify(self, response):
-        if response.ok:
-            return True
+        if response is not None:
+            if response.ok:
+                return True
         else:
-            print response.reason
-            raise requests.exceptions.HTTPError 
+            return False
+
+    def test_connectivity(self):
+        try:
+            response = self._get(url=self._url(path='hostname'))
+        except requests.exceptions.ConnectionError:
+            return False
+        else:
+            return True
 
 
     ''' === Appliance  === '''
@@ -67,7 +83,7 @@ class Appliance(object):
     def post_dns_servers(self, interface, servers):
         response = self._post(
             url=self._url(path='interface/{}/dns_nameserver'.format(interface)), 
-            data=self._data(parameter='dns_nameservers', value=servers))
+            data='{"dns_nameservers": %s}' % servers)
         if self.verify(response):
             return response.ok
 
@@ -95,7 +111,7 @@ class Appliance(object):
     def post_dns_search(self, interface, servers):
         response = self._post(
             url=self._url(path='interface/{}/dns_search'.format(interface)), 
-            data=self._data(parameter='dns_search', value=servers))
+            data=self._data(parameter='dns_search', value=[servers]))
         if self.verify(response):
             return response.ok
 
@@ -138,7 +154,7 @@ class Appliance(object):
     def put_ntp_servers(self, servers):
         response = self._put(
             url=self._url(path='ntp'), 
-            data=self._data(parameter='servers', value=servers))
+            data='{"servers": %s}' % servers)
         if self.verify(response):
             return response.ok
 
@@ -331,6 +347,7 @@ class Appliance(object):
         if self.verify(response):
             return response.ok
 
+
     ''' === Wireless === '''
 
     ''' GET wireless networks '''
@@ -360,13 +377,33 @@ class Appliance(object):
         return json.dumps({parameter: value})
 
     def _get(self, url=None):
-        return requests.get(url, verify=False, auth=self._auth())
+        try:
+            result = requests.get(url, verify=False, auth=self._auth())
+        except Exception as e:
+            log.error('(GET) Connection failed to {} - {}'.format(url, e))
+            return None
+        return result
 
     def _post(self, url=None, data=None):
-        return requests.post(url, headers=self.HEADERS, verify=False, auth=self._auth(), data=data)
+        try:
+            result = requests.post(url, headers=self.HEADERS, verify=False, auth=self._auth(), data=data)
+        except Exception as e:
+            log.error('(POST) Connection failed to {} - {}'.format(url, e))
+            return None
+        return result
 
     def _put(self, url=None, data=None):
-        return requests.put(url, headers=self.HEADERS, verify=False, auth=self._auth(), data=data)
+        try:
+            result = requests.put(url, headers=self.HEADERS, verify=False, auth=self._auth(), data=data)
+        except Exception as e:
+            log.error('(PUT) Connection failed to {} - {}'.format(url, e))
+            return None
+        return result
 
     def _delete(self, url=None):
-        return requests.delete(url, verify=False, auth=self._auth())
+        try:
+            result = requests.delete(url, verify=False, auth=self._auth())
+        except Exception as e:
+            log.error('(DELETE) Connection failed to {} - {}'.format(url, e))
+            return None
+        return result
