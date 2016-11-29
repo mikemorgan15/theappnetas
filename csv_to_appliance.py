@@ -1,5 +1,16 @@
 #!/usr/bin/python
 
+''' CSV-to-Appliance configuration script for AppNeta 9.x appliances '''
+
+''' Run './csv_to_appliance.py appliances.csv' to configure from CSV file '''
+''' Run './csv_to_appliance.py template' to generate blank csv template '''
+
+''' To use, put the current IP of the appliance in the dhcp_ip column, '''
+''' and then populate the other columns with desired config settings. '''
+
+''' Check 'csv_to_appliance_example.csv' for an example of how the .csv '''
+''' file should be populated. '''
+
 import json
 import sys
 import os
