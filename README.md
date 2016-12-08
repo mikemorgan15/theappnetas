@@ -2,6 +2,8 @@
 
 A Python module for making API calls to your 9.x AppNeta appliance, for configuration purposes
 
+Run 'pip install -r requirements.txt' to install dependencies.
+
 ### Usage:
 
 ```
