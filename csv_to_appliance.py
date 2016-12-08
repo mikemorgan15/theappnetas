@@ -37,7 +37,14 @@ def parse_csv(csv_file):
     	'dns_servers',
     	'dns_search',
     	'ntp_servers',
-    	'timezone'
+    	'timezone',
+    	'nis_address',
+    	'nis_sitekey',
+    	'nis_port',
+    	'nis_protocol',
+    	'nis_ssl',
+    	'nis_relay',
+    	'nis_tunnel'
     	], header=0, dtype=None)
     df = df.where((pandas.notnull(df)), None)
     q = []
@@ -53,6 +60,13 @@ def parse_csv(csv_file):
         dns_search = row['dns_search']
         ntp_servers = row['ntp_servers']
         timezone = row['timezone']
+        nis_address = row['nis_address']
+        nis_sitekey = row['nis_sitekey']
+        nis_port = row['nis_port']
+        nis_protocol = row['nis_protocol']
+        nis_ssl = row['nis_ssl']
+        nis_relay = row['nis_relay']
+        nis_tunnel = row['nis_tunnel']
         q.append({
         	'dhcp_ip': dhcp_ip, 
         	'password_old' : password_old, 
@@ -64,12 +78,20 @@ def parse_csv(csv_file):
         	'dns_servers': dns_servers,
         	'dns_search': dns_search,
         	'ntp_servers': ntp_servers,
-        	'timezone': timezone})
+        	'timezone': timezone,
+        	'nis_address': nis_address,
+        	'nis_sitekey': nis_sitekey,
+        	'nis_port': nis_port,
+        	'nis_protocol': nis_protocol,
+        	'nis_ssl': nis_ssl,
+        	'nis_relay': nis_relay,
+        	'nis_tunnel': nis_tunnel
+        	})
     return q
 
 def create_template_file(filename):
 	f = open(filename,'w')
-	f.write('dhcp_ip,password_old,password_new,hostname,ip_address,ip_gateway,ip_netmask,dns_servers,dns_search,ntp_servers,timezone')
+	f.write('dhcp_ip,password_old,password_new,hostname,ip_address,ip_gateway,ip_netmask,dns_servers,dns_search,ntp_servers,timezone,nis_address,nis_sitekey,nis_port,nis_protocol,nis_ssl,nis_relay,nis_tunnel')
 	f.close()
 
 def apply_config(appliance):
@@ -84,7 +106,7 @@ def apply_config(appliance):
 		result['password'] = False
 
 	a = Appliance(host=appliance['dhcp_ip'], username='admin', password=appliance['password_new'])
-	
+		
 	if a.put_hostname(appliance['hostname']):
 		log.info('{} - Hostname updated successfully'.format(appliance['hostname']))
 		result['hostname'] = True
@@ -149,14 +171,28 @@ def apply_config(appliance):
 	else:
 		log.error('{} - timezone did not update'.format(appliance['hostname']))
 		result['timezone'] = False
-
-	if a.put_service(service='networking', action='restart'):
-		log.info('{} - networking restarted successfully'.format(appliance['hostname']))
-		result['networking_restart'] = True
+	
+	if a.post_nis(
+		address=appliance['nis_address'], 
+		site_key=appliance['nis_sitekey'],
+		ports=str(appliance['nis_port']),
+		relay_addresses=appliance['nis_relay'],
+		ssl=str(appliance['nis_ssl']),
+		protocol=appliance['nis_protocol'],
+		tunnel_url=appliance['nis_tunnel']):
+		log.info('{} - nis config applied successfully'.format(appliance['hostname']))
+		result['nis_config'] = True
 	else:
-		log.error('{} - networking did not restart'.format(appliance['hostname']))
-		result['networking_restart'] = False
-
+		log.error('{} - nis config was not applied'.format(appliance['hostname']))
+		result['nis_config'] = False
+	
+	if a.put_appliance(action='reboot'):
+		log.info('{} - appliance rebooted successfully'.format(appliance['hostname']))
+		result['appliance_reboot'] = True
+	else:
+		log.error('{} - appliance did not reboot'.format(appliance['hostname']))
+		result['appliance_reboot'] = False
+	
 	return result
 
 if __name__ == "__main__":

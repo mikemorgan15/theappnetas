@@ -68,6 +68,14 @@ class Appliance(object):
         if self.verify(response):
             return {'result_data': response.json().get('result_data')}
 
+    ''' PUT appliance action (reboot) '''
+    def put_appliance(self, action):
+        response = self._put(
+            url=self._url(path='appliance',query={'action': action}),
+            data=self._data(parameter=True, value=True))
+        if self.verify(response):
+            return response.ok
+
 
     ''' === DNS servers === '''
 
@@ -265,10 +273,11 @@ class Appliance(object):
         response = self._post(
             url=self._url(
                 path='nis',
-                data=json.dumps(nis_config),
-                query={'restart_services': 'true'}
-                )
+                query={'restart_services': 'true'}),
+            data=json.dumps(nis_config)            
             )
+        print json.dumps(nis_config) 
+        print response.json
         if self.verify(response):
             return response.ok
 
